@@ -13,8 +13,7 @@
         .logo { font-size: 22px; font-weight: 900; color: #fff; margin: 10px 0; }
         .logo span { color: var(--neon-blue); font-style: italic; }
         
-        .srv-status { font-size: 9px; padding: 4px 12px; border-radius: 20px; background: #000; border: 1px solid var(--neon-green); color: var(--neon-green); margin-bottom: 15px; text-transform: uppercase; transition: 0.3s; }
-        .srv-offline { border-color: var(--neon-red); color: var(--neon-red); }
+        .srv-status { font-size: 9px; padding: 4px 12px; border-radius: 20px; background: #000; border: 1px solid var(--neon-green); color: var(--neon-green); margin-bottom: 15px; text-transform: uppercase; }
 
         .painel-financeiro { background: #111418; border: 2px solid var(--neon-green); border-radius: 15px; width: 95%; max-width: 600px; padding: 15px; margin-bottom: 15px; }
         .fin-row { display: flex; gap: 10px; justify-content: space-between; margin-bottom: 15px; }
@@ -25,7 +24,7 @@
         .display-stats { display: flex; justify-content: space-around; text-align: center; margin-top: 10px; }
         .display-stats div { flex: 1; }
         .display-stats span { font-size: 8px; color: #888; display: block; }
-        .display-stats b { font-size: 14px; cursor: pointer; }
+        .display-stats b { font-size: 14px; cursor: pointer; } /* Cursor alterado para pointer no simulador */
 
         .painel-central { background: #111418; border-radius: 15px; width: 95%; max-width: 600px; padding: 15px; border: 1px solid #222; }
         .grid-estrat { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
@@ -54,13 +53,16 @@
 <body>
 
     <div class="logo">K.C<span>📈</span>M BRAIN PRO-CONTROL</div>
-    <div id="conexao" class="srv-status">BOT OPERACIONAL - CONECTANDO...</div>
+    <div id="conexao" class="srv-status">BOT OPERACIONAL - PRICE ACTION ATIVO</div>
 
     <div class="painel-financeiro">
         <div class="fin-row">
             <div class="fin-input-group">
                 <label>BANCA INICIAL (R$)</label>
-                <input type="number" id="inpBanca" class="fin-input" value="5000" onfocus="estaEditando = true" onblur="estaEditando = false">
+                <input type="number" id="inpBanca" class="fin-input" value="5000" 
+                    onfocus="estaEditando = true" 
+                    onblur="estaEditando = false" 
+                    oninput="document.getElementById('display-banca').innerText = 'R$ ' + parseFloat(this.value || 0).toFixed(2)">
             </div>
             <div class="fin-input-group">
                 <label>PAYOUT (%)</label>
@@ -68,9 +70,9 @@
             </div>
         </div>
         <div class="display-stats">
-            <div><span>BANCA ATUAL</span><b id="display-banca">R$ 0.00</b></div>
+            <div><span>BANCA ATUAL</span><b id="display-banca">R$ 5000.00</b></div>
             <div><span>LUCRO HOJE</span><b id="display-lucro" style="color:var(--neon-green)">R$ 0.00</b></div>
-            <div><span>CRESCIMENTO</span><b id="display-crescimento" style="color:var(--neon-blue)">0.0%</b></div>
+            <div><span>CRESCIMENTO</span><b id="display-crescimento" style="color:var(--neon-blue)">0%</b></div>
             <div><span>SIMULADOR</span><b id="display-simulador" style="color:var(--gale)">1%</b></div>
         </div>
     </div>
@@ -79,11 +81,11 @@
         <div class="grid-estrat">
             <div class="estrat-card">
                 <div class="estrat-name">MARTELO / ESTRELA</div>
-                <button id="btn-REGRA-1" class="btn-toggle" onclick="toggleEstrat('REGRA-1')">ATIVO</button>
+                <button id="btn-REGRA 1" class="btn-toggle" onclick="toggleEstrat('REGRA 1')">ATIVO</button>
             </div>
             <div class="estrat-card">
                 <div class="estrat-name">ENGOLFO DE FORÇA</div>
-                <button id="btn-FLUXO-SNIPER" class="btn-toggle" onclick="toggleEstrat('FLUXO-SNIPER')">ATIVO</button>
+                <button id="btn-FLUXO SNIPER" class="btn-toggle" onclick="toggleEstrat('FLUXO SNIPER')">ATIVO</button>
             </div>
             <div class="estrat-card">
                 <div class="estrat-name">CONFIGURAÇÃO EMA</div>
@@ -95,7 +97,7 @@
             </div>
         </div>
 
-        <button class="btn-salvar-grande" onclick="salvarTudo()">SALVAR CONFIGURAÇÕES</button>
+        <button class="btn-salvar-grande" onclick="salvarTudo()">SALVAR BANCA/PAYOUT</button>
 
         <div class="barra-global">
             <div class="stat-item"><span>WINS DIRETO</span><b id="g-direto" style="color:var(--neon-green)">0</b></div>
@@ -110,11 +112,9 @@
 <script>
     const URL_SERVIDOR = "https://multiplaskcmp.onrender.com";
     let estaEditando = false; 
-    let percentualSimulador = 1;
-
     
-const LISTA_COMPLETA = [
-    { id: "NONE", nome: "❌ DESATIVAR SLOT" },
+    const LISTA_ATIVOS = [
+         { id: "NONE", nome: "❌ DESATIVAR SLOT" },
     /* --- SINTÉTICOS --- */
     { id: "R_10", nome: "📊 Volatility 10" },
     { id: "R_25", nome: "📊 Volatility 25" },
@@ -176,6 +176,8 @@ const LISTA_COMPLETA = [
 ];
 
 
+    let localEstatutos = { "REGRA 1": true, "FLUXO SNIPER": true };
+
     function criarMonitores() {
         const grid = document.getElementById('grid');
         let optionsHTML = LISTA_ATIVOS.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
@@ -184,7 +186,7 @@ const LISTA_COMPLETA = [
                 <div class="card" id="div-card${i}">
                     <div style="font-size:8px; color:#888;">MONITOR ${i}</div>
                     <div class="thermometer-wrap"><div class="thermometer-fill" id="therm-card${i}"></div></div>
-                    <div class="status-box" id="status-card${i}">AGUARDANDO</div>
+                    <div class="status-box" id="status-card${i}">ANALISANDO VELAS</div>
                     <div class="price" id="price-card${i}">0.00000</div>
                     <select class="select-ativo" id="select-card${i}" onchange="mudarAtivo('card${i}')">
                         ${optionsHTML}
@@ -193,25 +195,50 @@ const LISTA_COMPLETA = [
         }
     }
 
-    // Editar valor do simulador (1%, 2%, etc)
+    // NOVA FUNÇÃO PARA EDITAR VALORES MANUALMENTE (Simulador)
+    function editarValorManual(elemento, valorAtual, sufixo = "") {
+        estaEditando = true;
+        const input = document.createElement("input");
+        input.type = "number";
+        input.value = valorAtual;
+        input.className = "fin-input";
+        input.style.width = "60px";
+
+        elemento.innerHTML = "";
+        elemento.appendChild(input);
+        input.focus();
+
+        const finalizar = () => {
+            let novoValor = parseFloat(input.value) || valorAtual;
+            elemento.innerText = novoValor + sufixo;
+            setTimeout(() => { estaEditando = false; }, 500);
+        };
+
+        input.onblur = finalizar;
+        input.onkeydown = (e) => { if (e.key === "Enter") input.blur(); };
+    }
+
+    // Evento de Duplo Clique no Simulador
     document.getElementById("display-simulador").ondblclick = function() {
-        let p = prompt("Digite o novo % de entrada (ex: 1 ou 2.5):", percentualSimulador);
-        if(p) {
-            percentualSimulador = parseFloat(p);
-            this.innerText = percentualSimulador + "%";
-            salvarTudo(); // Envia pro servidor
-        }
+        let valorAtual = parseFloat(this.innerText.replace("%", ""));
+        editarValorManual(this, valorAtual, "%");
     };
 
     async function alternarEma() {
         const res = await fetch(`${URL_SERVIDOR}/alternar-ema`, { method: 'POST' });
         const d = await res.json();
-        sincronizar();
+        const btn = document.getElementById('btn-ema');
+        btn.innerText = d.novaEma === 0 ? "EMA DESATIVADA" : "EMA " + d.novaEma;
+        btn.classList.toggle('btn-off', d.novaEma === 0);
     }
 
     async function alternarTf() {
         const res = await fetch(`${URL_SERVIDOR}/alternar-tf`, { method: 'POST' });
-        sincronizar();
+        const d = await res.json();
+        const btn = document.getElementById('btn-tf');
+        const labels = { 300: "M5", 900: "M15", 1800: "M30", 3600: "H1", 0: "DESATIVADO" };
+        btn.innerText = labels[d.novoTf] + (d.novoTf === 0 ? "" : " (ATIVO)");
+        btn.classList.toggle('btn-off', d.novoTf === 0);
     }
 
     async function salvarTudo() {
@@ -221,9 +248,8 @@ const LISTA_COMPLETA = [
             await fetch(`${URL_SERVIDOR}/config-financeira`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ banca, payout, percentual: percentualSimulador / 100 })
+                body: JSON.stringify({ banca, payout, estatutos: localEstatutos })
             });
-            alert("Configurações salvas!");
         } catch (e) { console.log("Erro ao salvar."); }
     }
 
@@ -236,58 +262,41 @@ const LISTA_COMPLETA = [
         });
     }
 
+    function toggleEstrat(nome) {
+        localEstatutos[nome] = !localEstatutos[nome];
+        const btn = document.getElementById(`btn-${nome}`);
+        btn.innerText = localEstatutos[nome] ? "ATIVO" : "DESATIVADO";
+        btn.classList.toggle('btn-off', !localEstatutos[nome]);
+    }
+
     async function sincronizar() {
         if (estaEditando) return; 
         try {
             const res = await fetch(`${URL_SERVIDOR}/status`);
             const d = await res.json();
-            
-            // Status de Conexão
-            const srv = document.getElementById('conexao');
-            srv.innerText = "BOT OPERACIONAL - PRICE ACTION ATIVO";
-            srv.classList.remove('srv-offline');
-
-            // Financeiro
             document.getElementById('display-banca').innerText = "R$ " + d.global.banca;
             document.getElementById('display-lucro').innerText = "R$ " + d.global.lucro;
-            
-            // Cálculo de Crescimento %
-            let bancaIni = parseFloat(document.getElementById('inpBanca').value);
-            let cresc = ((parseFloat(d.global.lucro) / bancaIni) * 100).toFixed(1);
-            document.getElementById('display-crescimento').innerText = cresc + "%";
-
-            // Placar
             document.getElementById('g-direto').innerText = d.global.winDireto;
             document.getElementById('g-gales').innerText = d.global.winGales;
             document.getElementById('g-loss').innerText = d.global.loss;
             document.getElementById('g-precisao').innerText = d.global.precisao + "%";
             
-            // Filtros
-            const btnEma = document.getElementById('btn-ema');
-            btnEma.innerText = d.global.ema === 0 ? "EMA OFF" : "EMA " + d.global.ema;
-            btnEma.classList.toggle('btn-off', d.global.ema === 0);
+            // Atualiza botões se mudou no servidor
+            document.getElementById('btn-ema').innerText = d.global.ema === 0 ? "EMA DESATIVADA" : "EMA " + d.global.ema;
+            document.getElementById('btn-ema').classList.toggle('btn-off', d.global.ema === 0);
 
-            const btnTf = document.getElementById('btn-tf');
-            const labels = { 300: "M5", 900: "M15", 1800: "M30", 3600: "H1", 0: "OFF" };
-            btnTf.innerText = labels[d.global.tf] + (d.global.tf === 0 ? "" : " (ATIVO)");
-            btnTf.classList.toggle('btn-off', d.global.tf === 0);
-
-            // Monitores
             d.ativos.forEach(a => {
                 if(document.getElementById(`price-${a.cardId}`)) {
                     document.getElementById(`price-${a.cardId}`).innerText = a.preco;
                     document.getElementById(`status-${a.cardId}`).innerText = a.status;
+                    if(a.forca) document.getElementById(`therm-${a.cardId}`).style.width = a.forca + "%";
                 }
             });
-        } catch (e) {
-            const srv = document.getElementById('conexao');
-            srv.innerText = "SERVIDOR OFFLINE - TENTANDO RECONECTAR";
-            srv.classList.add('srv-offline');
-        }
+        } catch (e) {}
     }
 
     criarMonitores();
-    setInterval(sincronizar, 2000); // Sincroniza a cada 2 segundos para não sobrecarregar o Render
+    setInterval(sincronizar, 1000);
 </script>
 </body> 
 </html>
